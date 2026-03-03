@@ -71,4 +71,28 @@ body {
 	.bg-gradient-custom {
 		background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
 	}
+	.scrollbar-hide {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+	::-webkit-scrollbar {
+		display: none;
+	}
+
+	body {
+		-webkit-tap-highlight-color: transparent;
+		overscroll-behavior: none;
+	}
+
+	/* Safe area padding for notched devices */
+	.safe-area-bottom {
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+	}
 }

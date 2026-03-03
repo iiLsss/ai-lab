@@ -79,11 +79,11 @@ const MessageTextPart = ({ text, status }: { text: string; status: string }) => 
 
 export function ChatMessages({ messages, status, messagesEndRef, setInput }: ChatMessagesProps) {
 	return (
-		<div className='max-w-[760px] mx-auto py-8 lg:py-20 space-y-12 mt-16 md:mt-8 relative'>
+		<div className='max-w-190 mx-auto py-4 md:py-8 lg:py-20 space-y-8 md:space-y-12 mt-16 md:mt-8 relative px-1'>
 			{messages.length === 0 ? (
-				<div className='mt-8 md:mt-24 space-y-16 transition-all duration-1000'>
+				<div className='mt-4 md:mt-24 space-y-10 md:space-y-16 transition-all duration-1000'>
 					<div className='space-y-4 text-center md:text-left'>
-						<h1 className='text-5xl md:text-[64px] font-bold tracking-tight leading-tight'>
+						<h1 className='text-4xl sm:text-5xl md:text-[64px] font-bold tracking-tight leading-tight'>
 							<span className='text-gradient py-2'>Hello, Developer</span>
 						</h1>
 					</div>
@@ -98,7 +98,7 @@ export function ChatMessages({ messages, status, messagesEndRef, setInput }: Cha
 							<button
 								key={i}
 								onClick={() => setInput(item.text)}
-								className='p-5 bg-white/70 backdrop-blur-md rounded-3xl text-left transition-all hover-lift border border-white soft-shadow group relative flex flex-col justify-between min-h-[140px]'>
+								className='p-4 md:p-5 bg-white/70 backdrop-blur-md rounded-3xl text-left transition-all hover-lift border border-white soft-shadow group relative flex flex-col justify-between min-h-30 md:min-h-35'>
 								<div className={cn(`p-2.5 rounded-2xl w-fit transition-transform group-hover:scale-110`, item.color)}>{item.icon}</div>
 								<span className='text-[15px] font-medium leading-snug text-[#444] group-hover:text-[#222] pr-4 mt-4'>{item.text}</span>
 							</button>
@@ -109,9 +109,9 @@ export function ChatMessages({ messages, status, messagesEndRef, setInput }: Cha
 				<div className='space-y-10 pb-32'>
 					{messages.map(m => (
 						<div key={m.id} className='flex gap-4 md:gap-6 group'>
-							<div className='flex-shrink-0 mt-1.5'>
+							<div className='shrink-0 mt-1.5'>
 								{m.role === 'user' ? (
-									<div className='w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center border border-black/[0.04] soft-shadow'>
+									<div className='w-8 h-8 rounded-full bg-[#f0f0f0] flex items-center justify-center border border-black/4 soft-shadow'>
 										<span className='text-xs font-semibold text-[#666]'>ME</span>
 									</div>
 								) : (
@@ -123,22 +123,26 @@ export function ChatMessages({ messages, status, messagesEndRef, setInput }: Cha
 							<div className='flex-1 space-y-2 overflow-hidden'>
 								<div className='font-semibold text-[13px] text-[#888] uppercase tracking-wider'>{m.role === 'user' ? 'You' : 'Aurora AI'}</div>
 								<div className='text-[16px] leading-relaxed text-[#2b2b2b] whitespace-pre-wrap font-sans'>
-									{m.parts.map((part, index) => (part.type === 'text' ? <MessageTextPart key={index} text={part.text} status={status} /> : null))}
+									{m.parts && m.parts.length > 0 ? (
+										m.parts.map((part, index) => (part.type === 'text' && 'text' in part ? <MessageTextPart key={index} text={part.text} status={status} /> : null))
+									) : 'content' in m && typeof m.content === 'string' ? (
+										<MessageTextPart text={m.content as string} status={status} />
+									) : null}
 								</div>
 							</div>
 						</div>
 					))}
 					{status === 'streaming' && (
 						<div className='flex gap-4 md:gap-6'>
-							<div className='flex-shrink-0 mt-1.5'>
+							<div className='shrink-0 mt-1.5'>
 								<div className='w-8 h-8 rounded-full bg-gradient-custom flex items-center justify-center shadow-sm animate-pulse'>
 									<Sparkles className='w-4 h-4 text-white' />
 								</div>
 							</div>
 							<div className='flex-1 space-y-3 pt-3'>
-								<div className='h-2.5 bg-black/[0.06] rounded-full w-[40%] animate-pulse' />
-								<div className='h-2.5 bg-black/[0.06] rounded-full w-[85%] animate-pulse' />
-								<div className='h-2.5 bg-black/[0.06] rounded-full w-[60%] animate-pulse' />
+								<div className='h-2.5 bg-black/6 rounded-full w-[40%] animate-pulse' />
+								<div className='h-2.5 bg-black/6 rounded-full w-[85%] animate-pulse' />
+								<div className='h-2.5 bg-black/6 rounded-full w-[60%] animate-pulse' />
 							</div>
 						</div>
 					)}
