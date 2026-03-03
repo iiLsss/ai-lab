@@ -5,7 +5,7 @@
 目前在 `components/chat/ChatMessages.tsx` 中，AI 返回的 Markdown 内容实际上只是当作**纯文本**来进行渲染的：
 
 ```tsx
-<div className='text-[16px] leading-relaxed text-[#2b2b2b] whitespace-pre-wrap font-sans'>
+<div className='text-[16px] leading-relaxed text-[#2b2b2b] font-sans'>
 	{m.parts
 		? m.parts.map((part, j) => {
 				if (part.type === 'text') {

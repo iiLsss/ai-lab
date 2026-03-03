@@ -16,35 +16,44 @@ interface ChatMessagesProps {
 	messagesEndRef: RefObject<HTMLDivElement | null>
 	setInput: (input: string) => void
 }
+
+const THINKING_OPEN_RE = /<thinking\s*>/i
+const THINKING_CLOSE_RE = /<\/thinking\s*>/i
+
 const MessageTextPart = ({ text, status }: { text: string; status: string }) => {
 	const segments = []
 	let currentText = text
 
 	while (currentText.length > 0) {
-		const thinkingStartIdx = currentText.indexOf('<thinking>')
-		if (thinkingStartIdx === -1) {
+		const openMatch = THINKING_OPEN_RE.exec(currentText)
+		if (!openMatch) {
 			if (currentText.trim().length > 0 || segments.length === 0) {
 				segments.push({ type: 'text', content: currentText })
 			}
 			break
 		}
 
+		const thinkingStartIdx = openMatch.index
 		if (thinkingStartIdx > 0) {
 			segments.push({ type: 'text', content: currentText.slice(0, thinkingStartIdx) })
 		}
 
-		const thinkingEndIdx = currentText.indexOf('</thinking>', thinkingStartIdx)
-		if (thinkingEndIdx === -1) {
-			segments.push({ type: 'thinking', content: currentText.slice(thinkingStartIdx + 10), isComplete: false })
+		// Content starts after the full opening tag (e.g. "<thinking>" or "<thinking >")
+		const contentStart = thinkingStartIdx + openMatch[0].length
+		const closeMatch = THINKING_CLOSE_RE.exec(currentText.slice(contentStart))
+
+		if (!closeMatch) {
+			segments.push({ type: 'thinking', content: currentText.slice(contentStart), isComplete: false })
 			break
 		} else {
-			segments.push({ type: 'thinking', content: currentText.slice(thinkingStartIdx + 10, thinkingEndIdx), isComplete: true })
-			currentText = currentText.slice(thinkingEndIdx + 11)
+			const thinkingContent = currentText.slice(contentStart, contentStart + closeMatch.index)
+			segments.push({ type: 'thinking', content: thinkingContent, isComplete: true })
+			currentText = currentText.slice(contentStart + closeMatch.index + closeMatch[0].length)
 		}
 	}
-
+	console.log(segments)
 	return (
-		<div className='flex flex-col space-y-4'>
+		<div className='flex flex-col'>
 			{segments.map((segment, index) => {
 				if (segment.type === 'thinking') {
 					return (
@@ -57,7 +66,11 @@ const MessageTextPart = ({ text, status }: { text: string; status: string }) => 
 								<ChevronDown className='w-4 h-4 ml-auto transition-transform duration-200 group-open:rotate-180' />
 							</summary>
 							<div className='p-4 pt-0 text-[#666] text-[15px] border-t border-[#e5e5e5] bg-[#f9f9f9]'>
-								<Streamdown animated plugins={{ code, mermaid, math: createMathPlugin({ singleDollarTextMath: true }), cjk }} isAnimating={status === 'streaming'}>
+								<Streamdown
+									animated
+									plugins={{ code, mermaid, math: createMathPlugin({ singleDollarTextMath: true }), cjk }}
+									isAnimating={status === 'streaming'}
+									shikiTheme={['github-light', 'github-dark']}>
 									{segment.content}
 								</Streamdown>
 							</div>
@@ -67,7 +80,11 @@ const MessageTextPart = ({ text, status }: { text: string; status: string }) => 
 
 				return (
 					<div key={index}>
-						<Streamdown animated plugins={{ code, mermaid, math: createMathPlugin({ singleDollarTextMath: true }), cjk }} isAnimating={status === 'streaming'}>
+						<Streamdown
+							animated
+							plugins={{ code, mermaid, math: createMathPlugin({ singleDollarTextMath: true }), cjk }}
+							isAnimating={status === 'streaming'}
+							shikiTheme={['github-light', 'github-dark']}>
 							{segment.content}
 						</Streamdown>
 					</div>
@@ -122,7 +139,7 @@ export function ChatMessages({ messages, status, messagesEndRef, setInput }: Cha
 							</div>
 							<div className='flex-1 space-y-2 overflow-hidden'>
 								<div className='font-semibold text-[13px] text-[#888] uppercase tracking-wider'>{m.role === 'user' ? 'You' : 'Aurora AI'}</div>
-								<div className='text-[16px] leading-relaxed text-[#2b2b2b] whitespace-pre-wrap font-sans'>
+								<div className='text-[16px] leading-relaxed text-[#2b2b2b] font-sans'>
 									{m.parts && m.parts.length > 0 ? (
 										m.parts.map((part, index) => (part.type === 'text' && 'text' in part ? <MessageTextPart key={index} text={part.text} status={status} /> : null))
 									) : 'content' in m && typeof m.content === 'string' ? (
