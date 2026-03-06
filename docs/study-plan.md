@@ -407,9 +407,9 @@ npm install @supabase/supabase-js
 
 **本周交付**：
 
-- [ ] Supabase 项目创建完成，pgvector 扩展启用
-- [ ] 能手动导入几条文档并存储 Embedding
-- [ ] 输入查询语句，返回语义最相关的 Top-K 文档
+- [x] Supabase 项目创建完成，pgvector 扩展启用
+- [x] 能手动导入几条文档并存储 Embedding
+- [x] 输入查询语句，返回语义最相关的 Top-K 文档
 
 ---
 
