@@ -1,10 +1,4 @@
-import { embed } from 'ai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { supabaseAdmin } from '@/lib/supabase'
-
-const google = createGoogleGenerativeAI({
-	apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-})
+import { retrieveDocuments } from '@/lib/rag/retriever'
 
 export async function POST(req: Request) {
 	try {
@@ -14,45 +8,26 @@ export async function POST(req: Request) {
 			return Response.json({ error: '查询内容不能为空' }, { status: 400 })
 		}
 
-		console.log(`🔍 [1] 将搜索词转化为向量: "${query}"`)
+		console.log(`🔍 [RAG Search] 开始语义检索: "${query}"`)
 
-		const { embedding } = await embed({
-			model: google.textEmbeddingModel('gemini-embedding-001'),
-			value: query,
-			providerOptions: {
-				google: {
-					outputDimensionality: 768, // 必须和 Supabase vector(768) 一致
-					taskType: 'RETRIEVAL_QUERY',
-				},
-			},
+		const documents = await retrieveDocuments(query, {
+			topK: 5,
+			threshold: 0.6,
 		})
 
-		console.log(`[2] 查询 Supabase match_documents 函数...`)
-		// 调用我们在 Supabase 设置好的 RPC 存储过程
-		const { data: documents, error } = await supabaseAdmin.rpc('match_documents', {
-			query_embedding: embedding,
-			match_threshold: 0.6, // 余弦相似度最小阈值 (根据实际数据调整)
-			match_count: 5, // Top-K 最多取几条
-		})
+		console.log(`[RAG Search] 检索到 ${documents.length} 条匹配文档`)
 
-		if (error) {
-			console.error('Supabase RPC 错误:', error)
-			throw error
-		}
-
-		console.log(`[3] Ouptut - Retrieved ${documents?.length || 0} documents.`)
-
-		// RPC 函数原本返回的结果中我们设置了 id, content, metadata 和 similarity
-		// 为了和前端之前定义的接口对齐，我们做一层映射映射
-		const results = (documents || []).map((doc: any) => ({
+		// 前端接口兼容：映射为 { text, similarity } 格式
+		const results = documents.map(doc => ({
 			text: doc.content,
 			similarity: doc.similarity,
 			metadata: doc.metadata,
 		}))
 
 		return Response.json({ results })
-	} catch (error: any) {
-		console.error('[Search Error]:', error)
-		return Response.json({ error: error.message || '查询失败' }, { status: 500 })
+	} catch (error: unknown) {
+		const message = error instanceof Error ? error.message : '查询失败'
+		console.error('[RAG Search Error]:', message)
+		return Response.json({ error: message }, { status: 500 })
 	}
 }

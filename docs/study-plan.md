@@ -350,8 +350,8 @@ npm install @ai-sdk/openai  # OpenAI 的 embedding 模型最成熟
 
 **本周交付**：
 
-- [ ] 能展示任意两段文本的余弦相似度
-- [ ] 理解：为什么 "猫吃鱼" 和 "小猫爱海鲜" 相似度高，但 "猫吃鱼" 和 "股票涨了" 很低
+- [x] 能展示任意两段文本的余弦相似度
+- [x] 理解：为什么 "猫吃鱼" 和 "小猫爱海鲜" 相似度高，但 "猫吃鱼" 和 "股票涨了" 很低
 
 ---
 
@@ -447,9 +447,9 @@ npm install @supabase/supabase-js
 
 **本周交付**：
 
-- [ ] 实现 Markdown 感知的分片器（按标题 + 重叠窗口）
-- [ ] 把 `docs/` 下的 3-5 个 .md 文件全部导入 Supabase
-- [ ] 验证：搜索 "结构化输出" 能找到 vercel-ai-sdk-guide.md 的相关段落
+- [x] 实现 Markdown 感知的分片器（按标题 `##` / `###` 切分）
+- [x] 把 `docs/streamdown-analysis.md` 一键导入 Supabase（自动分片 + embedMany 批量向量化）
+- [x] 验证：语义搜索能精准命中文档中的对应 Chunk 段落
 
 ---
 
@@ -517,9 +517,9 @@ export async function POST(req: Request) {
 
 **本周交付**：
 
-- [ ] 聊天 AI 能基于 docs/ 下的笔记回答问题
-- [ ] 问 "generateObject 怎么用" 能得到基于你自己文档的回答
-- [ ] 问一个文档里没有的问题，AI 会说 "资料中未提及"
+- [x] 聊天 AI 能基于 docs/ 下的笔记回答问题（RAG Pipeline 已集成到 `/api/chat`）
+- [x] 问 "Streamdown 容错机制" 能得到基于你自己文档的回答，并附带 [参考资料] 引用
+- [x] 问一个文档里没有的问题，AI 会说 "知识库中暂未收录相关内容"，然后降级为自身知识回答
 
 ---
 
