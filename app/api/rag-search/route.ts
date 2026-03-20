@@ -2,17 +2,18 @@ import { retrieveDocuments } from '@/lib/rag/retriever'
 
 export async function POST(req: Request) {
 	try {
-		const { query } = await req.json()
+		const { query, filter } = await req.json()
 
 		if (!query) {
 			return Response.json({ error: '查询内容不能为空' }, { status: 400 })
 		}
 
-		console.log(`🔍 [RAG Search] 开始语义检索: "${query}"`)
+		console.log(`🔍 [RAG Search] 开始语义检索: "${query}"${filter ? ` | 过滤: ${JSON.stringify(filter)}` : ''}`)
 
 		const documents = await retrieveDocuments(query, {
 			topK: 5,
 			threshold: 0.6,
+			filter: filter || undefined,
 		})
 
 		console.log(`[RAG Search] 检索到 ${documents.length} 条匹配文档`)

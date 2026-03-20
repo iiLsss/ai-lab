@@ -6,10 +6,11 @@ export default function SupabaseRAGDashboard() {
 
 	// Search state
 	const [query, setQuery] = useState('')
-	const [results, setResults] = useState<{ text: string; similarity: number }[]>([])
+	const [results, setResults] = useState<{ text: string; similarity: number; metadata?: Record<string, unknown> }[]>([])
 	const [isSearching, setIsSearching] = useState(false)
 	const [hasSearched, setHasSearched] = useState(false)
 	const [searchError, setSearchError] = useState('')
+	const [filterSource, setFilterSource] = useState<string>('all') // Metadata Filter
 
 	// Ingest state
 	const [docText, setDocText] = useState('')
@@ -47,10 +48,16 @@ export default function SupabaseRAGDashboard() {
 		setSearchError('')
 
 		try {
+			// 构建请求体，如果选了特定来源就加 filter
+			const body: Record<string, unknown> = { query }
+			if (filterSource !== 'all') {
+				body.filter = { source: filterSource }
+			}
+
 			const res = await fetch('/api/rag-search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ query }),
+				body: JSON.stringify(body),
 			})
 
 			const data = await res.json()
@@ -237,6 +244,15 @@ export default function SupabaseRAGDashboard() {
 											className='w-full rounded-xl border border-zinc-200 bg-white pl-12 pr-4 py-3.5 text-sm text-zinc-900 shadow-sm placeholder-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors'
 										/>
 									</div>
+									<select
+										value={filterSource}
+										onChange={e => setFilterSource(e.target.value)}
+										className='rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-sm text-zinc-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors'
+									>
+										<option value='all'>📚 所有来源</option>
+										<option value='docs/streamdown-analysis.md'>📄 streamdown-analysis.md</option>
+										<option value='docs/vercel-ai-sdk-guide.md'>📄 vercel-ai-sdk-guide.md</option>
+									</select>
 									<button
 										onClick={handleSearch}
 										disabled={isSearching || !query.trim()}

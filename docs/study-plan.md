@@ -4,6 +4,7 @@
 | :----------- | :---------- | :----------------------------- | :--------------------------------------------------------------- | :-------- |
 | **第一阶段** | 第 1-4 周   | **思维转型：从确定性到概率性** | [DONE] Prompt Engineering, CoT 实战, Vercel AI SDK, 基础 Chatbot | ✅ 已完成 |
 | **第二阶段** | 第 5-10 周  | **RAG 与向量数据库**           | 数据预处理, Embedding, Vector DB (Pinecone/Supabase), 私有知识库 | 🚀 进行中 |
+| **实战项目** | 可穿插进行  | **🎨 Artifact 渲染器 / 生成式 UI** | 沙盒 iframe, AI 动态生成可交互组件, 安全隔离                 | ⏳ 待开始 |
 | **第三阶段** | 第 11-16 周 | **进阶 Agent 与 MCP 协议**     | Function Calling, MCP 协议, LangChain/LlamaIndex 源码分析        | ⏳ 待开始 |
 | **第四阶段** | 第 17-20 周 | **工程化与调优**               | RAGAS 评估, Swift Response (TTFT), 缓存, 微调基础                | ⏳ 待开始 |
 | **第五阶段** | 第 21-24 周 | **实战模拟与简历**             | 高并发, 跨端 AI, 面试题准备 (幻觉, 长文本, 稳定性)               | ⏳ 待开始 |
@@ -618,3 +619,227 @@ scripts/
 ### 🎯 第二阶段完成标志
 
 > 当你的聊天 AI 能准确回答 **"generateObject 的三层原理是什么？"**，并且引用你自己写的 `vercel-ai-sdk-guide.md` 文档内容时 — 第二阶段就完成了 ✅
+
+---
+
+---
+
+## 🎨 实战项目：Artifact 渲染器 / 生成式 UI
+
+> **定位**：独立实战项目，不绑定特定阶段。前置知识（`streamText`、`generateObject`、Zod Schema、流式协议）在第一阶段已全部掌握，可随时开始。
+>
+> **为什么独立？** 生成式 UI 本质是**前端渲染工程**，与 Agent/MCP（后端能力扩展）方向不同，但学完 Agent 后可以组合：Agent 获取数据 → 生成式 UI 渲染结果。
+
+---
+
+#### Week 11：Artifact 渲染器 / 生成式 UI（Generative UI）
+
+**学习目标**：实现 Claude Artifacts 式的体验——AI 在对话中动态生成可交互的可视化组件（图表、流程图、交互工具等）。
+
+**核心概念**：
+
+| 概念 | 一句话解释 |
+| --- | --- |
+| Generative UI | AI 不仅输出文字，还能输出可渲染的 UI 组件代码 |
+| Sandboxed iframe | 在隔离环境中安全执行 AI 生成的代码，防止 XSS 等安全风险 |
+| Artifact Protocol | 在流式输出中通过特殊标记区分「文本」和「可渲染代码」 |
+| 代码转译 | 浏览器端用 Babel 将 JSX/TSX 实时转译为可执行 JS |
+
+**实现方案对比**：
+
+| 方案 | 描述 | 优点 | 缺点 |
+| --- | --- | --- | --- |
+| **沙盒 iframe（Claude 方案）** | AI 生成完整 HTML/React 代码，注入 iframe 执行 | 最灵活，支持任意 UI | 需要转译，iframe 通信复杂 |
+| **预置组件 + JSON 数据** | AI 输出结构化 JSON，前端用预置组件渲染 | 安全可控，类型安全 | 灵活性受限于预置组件库 |
+| **Vercel AI SDK `createStreamableUI`** | SDK 原生支持的服务端流式 UI | 与 Next.js 深度集成 | 依赖 RSC（React Server Components） |
+| **Markdown 扩展** | 支持 Mermaid 图表、KaTeX 数学公式等 | 最简单，你已有基础 | 交互性有限 |
+
+**推荐路线（渐进式）**：
+
+```
+Level 1: Markdown 增强（你已有 Streamdown + Mermaid） ✅ 已完成
+    ↓
+Level 2: 预置组件 + 结构化输出（基于 generateObject 经验）
+    ↓
+Level 3: 沙盒 iframe 渲染器（完整 Artifact 体验）
+```
+
+---
+
+##### Level 2 实战：预置组件 + AI 结构化驱动
+
+> 利用第一阶段学的 `generateObject` + Zod Schema，让 AI 输出结构化数据来驱动预置的 UI 组件。
+
+```
+新建文件：
+├── components/artifacts/
+│   ├── ArtifactRenderer.tsx        ← 根据 type 分发到对应组件
+│   ├── ChartArtifact.tsx           ← 图表组件（Recharts）
+│   ├── MermaidArtifact.tsx         ← 流程图组件（Mermaid）
+│   ├── TableArtifact.tsx           ← 数据表格组件
+│   └── CodeArtifact.tsx            ← 可运行代码组件
+├── lib/artifacts/
+│   ├── schemas.ts                  ← Zod schemas 定义各类 Artifact
+│   └── parser.ts                   ← 从流式输出中解析 Artifact 标记
+└── app/api/chat/route.ts           ← 改造：支持输出 Artifact
+```
+
+**核心代码**：
+
+```typescript
+// lib/artifacts/schemas.ts
+import { z } from 'zod'
+
+export const chartArtifactSchema = z.object({
+  type: z.literal('chart'),
+  title: z.string().describe('图表标题'),
+  chartType: z.enum(['bar', 'line', 'pie', 'area']).describe('图表类型'),
+  data: z.array(z.object({
+    label: z.string(),
+    value: z.number(),
+  })).describe('图表数据'),
+})
+
+export const mermaidArtifactSchema = z.object({
+  type: z.literal('mermaid'),
+  title: z.string().describe('图表标题'),
+  code: z.string().describe('Mermaid 语法代码'),
+})
+
+export const artifactSchema = z.discriminatedUnion('type', [
+  chartArtifactSchema,
+  mermaidArtifactSchema,
+  // ...更多类型
+])
+```
+
+```typescript
+// components/artifacts/ArtifactRenderer.tsx
+import { ChartArtifact } from './ChartArtifact'
+import { MermaidArtifact } from './MermaidArtifact'
+
+export function ArtifactRenderer({ artifact }: { artifact: Artifact }) {
+  switch (artifact.type) {
+    case 'chart':
+      return <ChartArtifact data={artifact} />
+    case 'mermaid':
+      return <MermaidArtifact code={artifact.code} />
+    default:
+      return <div>不支持的类型</div>
+  }
+}
+```
+
+---
+
+##### Level 3 实战：沙盒 iframe 渲染器（完整版）
+
+> 实现 Claude Artifacts 级别的体验——AI 直接生成 React 组件代码，前端在沙盒中实时渲染。
+
+```
+新建文件：
+├── components/artifacts/
+│   └── SandboxRenderer.tsx         ← 沙盒 iframe 渲染器
+├── public/sandbox/
+│   └── index.html                  ← iframe 内的宿主页面（预加载 React、Recharts 等）
+└── lib/artifacts/
+    └── transpiler.ts               ← JSX → JS 转译（浏览器端 Babel）
+```
+
+**核心代码**：
+
+```typescript
+// components/artifacts/SandboxRenderer.tsx
+'use client'
+import { useRef, useEffect } from 'react'
+
+export function SandboxRenderer({ code }: { code: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+
+    // 通过 postMessage 将 AI 生成的代码发送给 iframe
+    iframe.contentWindow?.postMessage(
+      { type: 'RENDER', code },
+      '*'
+    )
+  }, [code])
+
+  return (
+    <iframe
+      ref={iframeRef}
+      src="/sandbox/index.html"
+      sandbox="allow-scripts allow-same-origin"
+      className="artifact-iframe"
+      title="AI 生成的组件"
+    />
+  )
+}
+```
+
+```html
+<!-- public/sandbox/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'RENDER') {
+        try {
+          const transpiled = Babel.transform(event.data.code, {
+            presets: ['react'],
+          }).code
+          // 执行转译后的代码
+          const module = { exports: {} }
+          new Function('React', 'ReactDOM', 'Recharts', 'module', transpiled)(
+            React, ReactDOM, Recharts, module
+          )
+          const Component = module.exports.default || module.exports
+          ReactDOM.createRoot(document.getElementById('root'))
+            .render(React.createElement(Component))
+        } catch (err) {
+          document.getElementById('root').innerHTML =
+            `<pre style="color:red">${err.message}</pre>`
+        }
+      }
+    })
+  </script>
+</body>
+</html>
+```
+
+---
+
+**安全注意事项**：
+
+```
+⚠️ iframe sandbox 属性控制：
+├── allow-scripts          ← 必须：允许执行 JS
+├── allow-same-origin      ← 按需：允许访问同源资源
+├── ❌ allow-top-navigation ← 禁止：防止跳转主页面
+├── ❌ allow-forms           ← 禁止：防止提交表单
+└── ❌ allow-popups          ← 禁止：防止弹窗
+
+🔒 CSP（Content Security Policy）：
+├── script-src: 仅允许预加载的 CDN 库
+├── connect-src: 禁止发起网络请求
+└── frame-ancestors: 仅允许你的域名嵌入
+```
+
+**本周交付**：
+
+- [ ] 实现 Level 2：AI 能输出结构化数据驱动预置图表组件
+- [ ] 实现 Level 3 基础版：AI 生成 React 代码 → 沙盒 iframe 渲染
+- [ ] 对话中输入 "画一个柱状图展示前端框架流行度" → AI 生成可交互图表
+- [ ] 理解 Generative UI 的安全模型（沙盒隔离、CSP 策略）
+
+---

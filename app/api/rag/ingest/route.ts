@@ -16,8 +16,13 @@ export async function POST(req: Request) {
 
 		console.log('1. 开始将文本转化为向量...')
 		const { embedding } = await embed({
-			model: google.embeddingModel('text-embedding-004'),
+			model: google.textEmbeddingModel('gemini-embedding-001'),
 			value: text,
+			providerOptions: {
+				google: {
+					outputDimensionality: 768,
+				},
+			},
 		})
 
 		console.log(`2. 向量生成完毕，维度: ${embedding.length}。准备写入 Supabase...`)

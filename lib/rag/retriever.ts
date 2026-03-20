@@ -15,6 +15,7 @@ export interface RetrievedDocument {
 interface RetrieveOptions {
 	topK?: number
 	threshold?: number
+	filter?: Record<string, unknown> // Metadata 过滤条件，如 { source: "docs/xxx.md" }
 }
 
 /**
@@ -22,9 +23,14 @@ interface RetrieveOptions {
  * 然后在 Supabase pgvector 中查找最相关的文档片段。
  *
  * 这是 RAG Pipeline 的核心检索环节。
+ *
+ * @param query - 用户的查询文本
+ * @param options.topK - 返回最相关的 K 条文档（默认 5）
+ * @param options.threshold - 最低相似度阈值（默认 0.5）
+ * @param options.filter - Metadata 过滤条件，如 { source: "docs/xxx.md" }
  */
 export async function retrieveDocuments(query: string, options: RetrieveOptions = {}): Promise<RetrievedDocument[]> {
-	const { topK = 5, threshold = 0.5 } = options
+	const { topK = 5, threshold = 0.5, filter } = options
 
 	// 1. 将用户查询转化为向量
 	const { embedding } = await embed({
@@ -43,6 +49,7 @@ export async function retrieveDocuments(query: string, options: RetrieveOptions 
 		query_embedding: embedding,
 		match_threshold: threshold,
 		match_count: topK,
+		filter_metadata: filter || null, // null = 不过滤，返回所有文档
 	})
 
 	if (error) {

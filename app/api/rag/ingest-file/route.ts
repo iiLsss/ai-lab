@@ -21,7 +21,9 @@ function chunkMarkdown(text: string): string[] {
 export async function POST(req: Request) {
 	try {
 		// 1. 读取本地指定的 Markdown 文件
-		const filePath = path.join(process.cwd(), 'docs', 'streamdown-analysis.md')
+		const docFileName = 'vercel-ai-sdk-guide.md'
+		const filePath = path.join(process.cwd(), 'docs', docFileName)
+		const sourceLabel = `docs/${docFileName}` // 用于 metadata.source，自动跟随文件名
 		if (!fs.existsSync(filePath)) {
 			return Response.json({ error: '文件不存在: ' + filePath }, { status: 404 })
 		}
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
 		console.log('[Ingest File] 正在请求大模型生成向量...')
 
 		// const { embeddings } = await embedMany({
-		// 	model: google.embeddingModel('text-embedding-004'),
+		// 	model: google.embeddingModel('gemini-embedding-001'),
 		// 	values: chunks,
 		// })
 
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
 		const rowsToInsert = chunks.map((chunkText, index) => ({
 			content: chunkText,
 			metadata: {
-				source: 'docs/streamdown-analysis.md',
+				source: sourceLabel,
 				chunk_index: index,
 				total_chunks: chunks.length,
 			},

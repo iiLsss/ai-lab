@@ -49,7 +49,7 @@ export default function EmbeddingDebugPage() {
 				<header className='mb-12'>
 					<h1 className='text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 mb-4'>Embedding 相似度测试</h1>
 					<p className='text-lg text-zinc-600 leading-relaxed max-w-2xl'>
-						通过 Google 的 <code>text-embedding-004</code> 模型将文本映射为高维向量，并计算其余弦相似度（Cosine Similarity）。 得分越接近 1，表示语义越相关。
+						通过 Google 的 <code>gemini-embedding-001</code> 模型将文本映射为高维向量，并计算其余弦相似度（Cosine Similarity）。 得分越接近 1，表示语义越相关。
 					</p>
 				</header>
 
@@ -114,7 +114,7 @@ export default function EmbeddingDebugPage() {
 										<polyline points='3.27 6.96 12 12.01 20.73 6.96'></polyline>
 										<line x1='12' y1='22.08' x2='12' y2='12'></line>
 									</svg>
-									text-embedding-004
+									gemini-embedding-001
 								</span>
 								<span className='bg-zinc-200 text-zinc-700 px-2 py-0.5 rounded-md text-xs font-mono'>{result.vectorDimensions} 维</span>
 							</div>

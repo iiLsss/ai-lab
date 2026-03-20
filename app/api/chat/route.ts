@@ -1,6 +1,7 @@
 import { streamText, UIMessage, convertToModelMessages } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { retrieveDocuments } from '@/lib/rag/retriever'
+import { rewriteQueryWithContext } from '@/lib/rag/query-rewriter'
 
 const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
@@ -69,12 +70,28 @@ export async function POST(req: Request) {
 			})
 		}
 
-		// ① 提取用户最新一条消息的文本内容（用于检索）
+		// ① 提取检索查询文本
+		// 如果是多轮对话 → 用 LLM 改写查询（解决代词指代问题）
+		// 如果是单轮对话 → 直接用原文
+		const model = openrouter.chat('google/gemini-2.5-flash')
 		const lastMessage = messages[messages.length - 1]
-		const queryText = (lastMessage.parts || [])
+		const lastMessageText = (lastMessage.parts || [])
 			.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
 			.map(p => p.text)
 			.join(' ')
+
+		let queryText = lastMessageText
+
+		if (messages.length > 1) {
+			try {
+				queryText = await rewriteQueryWithContext(messages, model)
+				console.log(`[RAG] 原始查询: "${lastMessageText}"`)
+				console.log(`[RAG] 改写查询: "${queryText}"`)
+			} catch (rewriteError) {
+				// 改写失败 → 降级为原始查询
+				console.warn('[RAG] 查询改写失败，使用原始查询:', rewriteError)
+			}
+		}
 
 		// ② RAG 检索：从 Supabase 向量数据库中查找相关文档
 		let retrievedDocs: { content: string; similarity: number; metadata: Record<string, unknown> }[] = []
@@ -82,7 +99,7 @@ export async function POST(req: Request) {
 		try {
 			retrievedDocs = await retrieveDocuments(queryText, {
 				topK: 5,
-				threshold: 0.7, // 阈值要高，避免无关内容"擦边"被捞上来
+				threshold: 0.7,
 			})
 			console.log(`[RAG] 检索到 ${retrievedDocs.length} 条相关文档`)
 			retrievedDocs.forEach((doc, i) => {
@@ -98,7 +115,7 @@ export async function POST(req: Request) {
 
 		// ④ 调用大模型，流式生成回答
 		const result = streamText({
-			model: openrouter.chat('google/gemini-2.5-flash'),
+			model,
 			system: systemPrompt,
 			messages: await convertToModelMessages(messages),
 			onError({ error }) {
