@@ -1,13 +1,13 @@
 ## 📅 进度概览
 
-| 阶段         | 周期        | 主题                           | 核心任务                                                         | 状态      |
-| :----------- | :---------- | :----------------------------- | :--------------------------------------------------------------- | :-------- |
-| **第一阶段** | 第 1-4 周   | **思维转型：从确定性到概率性** | [DONE] Prompt Engineering, CoT 实战, Vercel AI SDK, 基础 Chatbot | ✅ 已完成 |
-| **第二阶段** | 第 5-10 周  | **RAG 与向量数据库**           | 数据预处理, Embedding, Vector DB (Pinecone/Supabase), 私有知识库 | 🚀 进行中 |
-| **实战项目** | 可穿插进行  | **🎨 Artifact 渲染器 / 生成式 UI** | 沙盒 iframe, AI 动态生成可交互组件, 安全隔离                 | ⏳ 待开始 |
-| **第三阶段** | 第 11-16 周 | **进阶 Agent 与 MCP 协议**     | Function Calling, MCP 协议, LangChain/LlamaIndex 源码分析        | ⏳ 待开始 |
-| **第四阶段** | 第 17-20 周 | **工程化与调优**               | RAGAS 评估, Swift Response (TTFT), 缓存, 微调基础                | ⏳ 待开始 |
-| **第五阶段** | 第 21-24 周 | **实战模拟与简历**             | 高并发, 跨端 AI, 面试题准备 (幻觉, 长文本, 稳定性)               | ⏳ 待开始 |
+| 阶段         | 周期        | 主题                               | 核心任务                                                         | 状态      |
+| :----------- | :---------- | :--------------------------------- | :--------------------------------------------------------------- | :-------- |
+| **第一阶段** | 第 1-4 周   | **思维转型：从确定性到概率性**     | [DONE] Prompt Engineering, CoT 实战, Vercel AI SDK, 基础 Chatbot | ✅ 已完成 |
+| **第二阶段** | 第 5-10 周  | **RAG 与向量数据库**               | 数据预处理, Embedding, Vector DB (Pinecone/Supabase), 私有知识库 | ✅ 已完成 |
+| **实战项目** | 可穿插进行  | **🎨 Artifact 渲染器 / 生成式 UI** | 沙盒 iframe, AI 动态生成可交互组件, 安全隔离                     | ⏳ 待开始 |
+| **第三阶段** | 第 11-16 周 | **进阶 Agent 与 MCP 协议**         | Function Calling, MCP 协议, LangChain/LlamaIndex 源码分析        | ⏳ 待开始 |
+| **第四阶段** | 第 17-20 周 | **工程化与调优**                   | RAGAS 评估, Swift Response (TTFT), 缓存, 微调基础                | ⏳ 待开始 |
+| **第五阶段** | 第 21-24 周 | **实战模拟与简历**                 | 高并发, 跨端 AI, 面试题准备 (幻觉, 长文本, 稳定性)               | ⏳ 待开始 |
 
 ---
 
@@ -546,8 +546,12 @@ export async function POST(req: Request) {
 
 **本周交付**：
 
-- [ ] 至少实现 2 种进阶检索技巧
-- [ ] 对比改进前后的检索质量（同样的问题，返回的文档更精准了吗？）
+- [x] 至少实现 2 种进阶检索技巧
+  - ✅ 多轮上下文检索（Query Rewriting）：`lib/rag/query-rewriter.ts` — 用 LLM 将多轮对话浓缩为独立检索查询
+  - ✅ Metadata Filter：升级 `match_documents` RPC + `retriever.ts` — 支持按文档来源过滤
+- [x] 对比改进前后的检索质量（同样的问题，返回的文档更精准了吗？）
+  - ✅ Query Rewriting 实测："说一下核心架构" → 改写为 "Vercel AI SDK 的核心架构是什么" → 相似度 90.7%
+  - ✅ Metadata Filter 实测：按来源过滤可精准限定搜索范围
 
 ---
 
@@ -566,18 +570,24 @@ export async function POST(req: Request) {
 **生产化清单**：
 
 ```
-□ Embedding 缓存（同样的查询不重复调用）
-□ 检索结果缓存（热门问题用 Redis/内存缓存）
+✅ Embedding 缓存（lib/rag/cache.ts — LRU + 1h TTL，最多200条）
+✅ 检索结果缓存（lib/rag/cache.ts — LRU + 30min TTL，最多100条）
 □ 文档版本管理（更新文档后重新 embed）
-□ 错误降级（向量库不可用时，退回到纯 LLM 模式）
-□ 可观测性（记录每次检索的 query、返回文档数、相似度分数）
+✅ 错误降级（向量库不可用时，catch 后 retrievedDocs=[]，退回纯 LLM 模式）
+✅ 可观测性（console.log 记录 query/文档数/相似度；/api/rag/cache-stats 端点）
 ```
 
 **本周交付**：
 
-- [ ] 准备 10-20 个测试问题，手动评估 RAG 回答质量
-- [ ] 实现至少一项生产化优化（推荐：缓存 or 降级）
-- [ ] 撰写第二阶段总结文档
+- [x] 准备 15 个测试问题（A类×10/B类×2/C类×3），评估 RAG 回答质量
+  - ✅ 评估 API：`app/api/rag/evaluate/route.ts` — 自动计算检索相关度 + 关键词覆盖率
+  - ✅ 评估面板：`/debug/rag-eval` — 可视化评分、检索文档、AI 回答
+- [x] 实现**两项**生产化优化：
+  - ✅ 双层 LRU 缓存（`lib/rag/cache.ts`）：L1 检索结果缓存 + L2 Embedding 缓存
+  - ✅ 降级机制（`app/api/chat/route.ts`）：向量库故障时自动退回纯 LLM 并声明
+  - ✅ 缓存可观测性 API：`/api/rag/cache-stats` — 实时查看缓存命中统计
+- [x] 撰写第二阶段总结文档
+  - ✅ [`docs/phase2-rag-summary.md`](file:///Users/eeo/Documents/lsss/diqiu-lab/docs/phase2-rag-summary.md) — 架构回顾、分周要点、踩坑记录
 
 ---
 
@@ -638,21 +648,21 @@ scripts/
 
 **核心概念**：
 
-| 概念 | 一句话解释 |
-| --- | --- |
-| Generative UI | AI 不仅输出文字，还能输出可渲染的 UI 组件代码 |
-| Sandboxed iframe | 在隔离环境中安全执行 AI 生成的代码，防止 XSS 等安全风险 |
-| Artifact Protocol | 在流式输出中通过特殊标记区分「文本」和「可渲染代码」 |
-| 代码转译 | 浏览器端用 Babel 将 JSX/TSX 实时转译为可执行 JS |
+| 概念              | 一句话解释                                              |
+| ----------------- | ------------------------------------------------------- |
+| Generative UI     | AI 不仅输出文字，还能输出可渲染的 UI 组件代码           |
+| Sandboxed iframe  | 在隔离环境中安全执行 AI 生成的代码，防止 XSS 等安全风险 |
+| Artifact Protocol | 在流式输出中通过特殊标记区分「文本」和「可渲染代码」    |
+| 代码转译          | 浏览器端用 Babel 将 JSX/TSX 实时转译为可执行 JS         |
 
 **实现方案对比**：
 
-| 方案 | 描述 | 优点 | 缺点 |
-| --- | --- | --- | --- |
-| **沙盒 iframe（Claude 方案）** | AI 生成完整 HTML/React 代码，注入 iframe 执行 | 最灵活，支持任意 UI | 需要转译，iframe 通信复杂 |
-| **预置组件 + JSON 数据** | AI 输出结构化 JSON，前端用预置组件渲染 | 安全可控，类型安全 | 灵活性受限于预置组件库 |
-| **Vercel AI SDK `createStreamableUI`** | SDK 原生支持的服务端流式 UI | 与 Next.js 深度集成 | 依赖 RSC（React Server Components） |
-| **Markdown 扩展** | 支持 Mermaid 图表、KaTeX 数学公式等 | 最简单，你已有基础 | 交互性有限 |
+| 方案                                   | 描述                                          | 优点                | 缺点                                |
+| -------------------------------------- | --------------------------------------------- | ------------------- | ----------------------------------- |
+| **沙盒 iframe（Claude 方案）**         | AI 生成完整 HTML/React 代码，注入 iframe 执行 | 最灵活，支持任意 UI | 需要转译，iframe 通信复杂           |
+| **预置组件 + JSON 数据**               | AI 输出结构化 JSON，前端用预置组件渲染        | 安全可控，类型安全  | 灵活性受限于预置组件库              |
+| **Vercel AI SDK `createStreamableUI`** | SDK 原生支持的服务端流式 UI                   | 与 Next.js 深度集成 | 依赖 RSC（React Server Components） |
+| **Markdown 扩展**                      | 支持 Mermaid 图表、KaTeX 数学公式等           | 最简单，你已有基础  | 交互性有限                          |
 
 **推荐路线（渐进式）**：
 
@@ -691,25 +701,29 @@ Level 3: 沙盒 iframe 渲染器（完整 Artifact 体验）
 import { z } from 'zod'
 
 export const chartArtifactSchema = z.object({
-  type: z.literal('chart'),
-  title: z.string().describe('图表标题'),
-  chartType: z.enum(['bar', 'line', 'pie', 'area']).describe('图表类型'),
-  data: z.array(z.object({
-    label: z.string(),
-    value: z.number(),
-  })).describe('图表数据'),
+	type: z.literal('chart'),
+	title: z.string().describe('图表标题'),
+	chartType: z.enum(['bar', 'line', 'pie', 'area']).describe('图表类型'),
+	data: z
+		.array(
+			z.object({
+				label: z.string(),
+				value: z.number(),
+			}),
+		)
+		.describe('图表数据'),
 })
 
 export const mermaidArtifactSchema = z.object({
-  type: z.literal('mermaid'),
-  title: z.string().describe('图表标题'),
-  code: z.string().describe('Mermaid 语法代码'),
+	type: z.literal('mermaid'),
+	title: z.string().describe('图表标题'),
+	code: z.string().describe('Mermaid 语法代码'),
 })
 
 export const artifactSchema = z.discriminatedUnion('type', [
-  chartArtifactSchema,
-  mermaidArtifactSchema,
-  // ...更多类型
+	chartArtifactSchema,
+	mermaidArtifactSchema,
+	// ...更多类型
 ])
 ```
 
@@ -783,37 +797,33 @@ export function SandboxRenderer({ code }: { code: string }) {
 <!-- public/sandbox/index.html -->
 <!DOCTYPE html>
 <html>
-<head>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-  <script>
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'RENDER') {
-        try {
-          const transpiled = Babel.transform(event.data.code, {
-            presets: ['react'],
-          }).code
-          // 执行转译后的代码
-          const module = { exports: {} }
-          new Function('React', 'ReactDOM', 'Recharts', 'module', transpiled)(
-            React, ReactDOM, Recharts, module
-          )
-          const Component = module.exports.default || module.exports
-          ReactDOM.createRoot(document.getElementById('root'))
-            .render(React.createElement(Component))
-        } catch (err) {
-          document.getElementById('root').innerHTML =
-            `<pre style="color:red">${err.message}</pre>`
-        }
-      }
-    })
-  </script>
-</body>
+	<head>
+		<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+		<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+		<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+		<script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+	</head>
+	<body>
+		<div id="root"></div>
+		<script>
+			window.addEventListener('message', event => {
+				if (event.data.type === 'RENDER') {
+					try {
+						const transpiled = Babel.transform(event.data.code, {
+							presets: ['react'],
+						}).code
+						// 执行转译后的代码
+						const module = { exports: {} }
+						new Function('React', 'ReactDOM', 'Recharts', 'module', transpiled)(React, ReactDOM, Recharts, module)
+						const Component = module.exports.default || module.exports
+						ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Component))
+					} catch (err) {
+						document.getElementById('root').innerHTML = `<pre style="color:red">${err.message}</pre>`
+					}
+				}
+			})
+		</script>
+	</body>
 </html>
 ```
 

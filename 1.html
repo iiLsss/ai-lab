@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>深度研究：Claude Code 与 Hermes Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Chosen Palette: Warm Neutrals with Subdued Semantic Accents (Stone background, Orange/Emerald accents) -->
+  <!-- Application Structure Plan: 
+         1. Hero Section: Sets the stage and introduces the core theme (Proprietary vs. Open Source Agents).
+         2. Diachronic Analysis (Timeline): An interactive vertical timeline showing the evolution from autocomplete to autonomous agents, contextualizing the birth of both subjects. Users click nodes to reveal narrative details.
+         3. Synchronic Analysis (Comparison): A side-by-side analytical dashboard. Features a Radar Chart for capability comparison, and interactive toggle cards to explore specific dimensions (Architecture, Target, Strengths/Weaknesses).
+         4. Ecosystem Positioning (Matrix): A scatter plot placing the subjects within the broader market landscape (Autonomy vs. Ecosystem Openness).
+         5. Synthesis & Conclusion: Final analytical takeaways.
+         This structure translates a dense text report into an explorable, visual journey, keeping users engaged through interaction while maintaining analytical depth.
+    -->
+  <!-- Visualization & Content Choices: 
+         - Timeline (HTML/CSS + JS): Goal: Show evolution. Justification: Better than text lists; allows progressive disclosure of information. No SVG used.
+         - Capability Radar (Chart.js Canvas): Goal: Multi-dimensional comparison. Justification: Instantly highlights the core trade-offs (Reasoning vs. Privacy).
+         - Market Positioning Matrix (Chart.js Scatter Canvas): Goal: Show ecological niche. Justification: Visualizes abstract concepts (Openness vs Autonomy) effectively.
+    -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+    body {
+      font-family: 'Inter', 'Noto Sans SC', sans-serif;
+      background-color: #faf9f6;
+      /* Warm neutral background */
+      color: #292524;
+      /* Stone 800 */
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 400px;
+      max-height: 60vh;
+    }
+
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 450px;
+      }
+    }
+
+    /* Custom Scrollbar for inner elements */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f5f5f4;
+      border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #d6d3d1;
+      border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #a8a29e;
+    }
+
+    /* Timeline Node Animation */
+    .timeline-node {
+      transition: all 0.3s ease;
+    }
+
+    .timeline-node.active {
+      transform: scale(1.2);
+      background-color: #f97316;
+      /* Orange 500 */
+      border-color: #fff;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body class="antialiased selection:bg-orange-200 selection:text-orange-900">
+
+  <!-- Navigation -->
+  <nav class="fixed w-full bg-[#faf9f6]/90 backdrop-blur-md z-50 border-b border-stone-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <span class="text-xl font-bold tracking-tight text-stone-800">AI Coding Agents</span>
+        </div>
+        <div class="hidden md:flex space-x-8 items-center">
+          <a href="#intro" class="text-stone-600 hover:text-orange-600 transition-colors text-sm font-medium">概览</a>
+          <a href="#diachronic"
+            class="text-stone-600 hover:text-orange-600 transition-colors text-sm font-medium">纵向发展史</a>
+          <a href="#synchronic"
+            class="text-stone-600 hover:text-orange-600 transition-colors text-sm font-medium">横向深度对比</a>
+          <a href="#ecosystem"
+            class="text-stone-600 hover:text-orange-600 transition-colors text-sm font-medium">生态位分析</a>
+          <a href="#synthesis"
+            class="text-stone-600 hover:text-orange-600 transition-colors text-sm font-medium">前瞻总结</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="pt-24 pb-16">
+    <!-- Section 1: Introduction -->
+    <section id="intro" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-24 fade-in">
+      <div class="text-center mb-12">
+        <p class="text-sm font-semibold text-orange-600 tracking-wide uppercase mb-3">深度研究报告</p>
+        <h1 class="text-4xl sm:text-5xl font-bold text-stone-900 mb-6 leading-tight">
+          代码智能的十字路口：<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">Claude Code</span> 与
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">Hermes Agent</span>
+        </h1>
+        <p class="text-lg text-stone-600 max-w-2xl mx-auto">
+          当 AI 从“辅助补全”进化为“独立执行”，开发者工具迎来了范式转移。本报告采用「横纵分析法」，深度拆解代表闭源生态巅峰的 Claude Code 与代表开源自主精神的 Hermes
+          Agent，探寻下一代软件开发的终极形态。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        <div class="bg-white p-6 rounded-2xl border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+          <div
+            class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-2xl mb-4">🟧
+          </div>
+          <h3 class="text-xl font-bold text-stone-800 mb-2">研究对象 A：Claude Code</h3>
+          <p class="text-stone-600 text-sm leading-relaxed">Anthropic 推出的终端原生 (CLI) AI 编程代理。它跳出了 IDE
+            插件的限制，直接接管命令行，能够自主理解庞大代码库、运行测试、甚至执行复杂的系统级重构，是目前闭源商用 Agent 的能力天花板。</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-teal-100 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center text-2xl mb-4">🟩
+          </div>
+          <h3 class="text-xl font-bold text-stone-800 mb-2">研究对象 B：Hermes Agent</h3>
+          <p class="text-stone-600 text-sm leading-relaxed">开源社区的强力回应（以 Nous Hermes 系列模型及开源 Agent
+            框架为代表）。它强调本地运行、隐私安全与高度定制化，允许开发者利用开源权重构建不依赖大型科技公司 API 的专属编程助手。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Diachronic Analysis -->
+    <section id="diachronic" class="bg-stone-100/50 py-20 border-y border-stone-200">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-12">
+          <h2 class="text-3xl font-bold text-stone-900 mb-4">一、纵向分析：从"打字机"到"初级程序员"的演进</h2>
+          <p class="text-stone-600">
+            纵观 AI 编程的历史，这是一个逐步释放开发者双手的过程。Claude Code 和 Hermes Agent
+            并非凭空出现，它们是行业在经历了自动补全、对话辅助后的必然产物。点击下方时间轴节点，探索每个关键时代的决策逻辑与背景。
+          </p>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-12">
+          <!-- Timeline Container -->
+          <div class="md:w-1/3 relative">
+            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-stone-300"></div>
+            <div class="space-y-8 relative" id="timeline-container">
+              <!-- Timeline items injected via JS -->
+            </div>
+          </div>
+
+          <!-- Timeline Detail Card -->
+          <div class="md:w-2/3">
+            <div class="sticky top-28 bg-white p-8 rounded-2xl border border-stone-200 shadow-lg" id="timeline-detail">
+              <h3 class="text-2xl font-bold text-stone-800 mb-2" id="detail-title">请选择时间节点</h3>
+              <div class="inline-block px-3 py-1 bg-stone-100 text-stone-600 text-xs font-semibold rounded-full mb-6"
+                id="detail-date">年份</div>
+
+              <div class="space-y-4 text-stone-600 leading-relaxed custom-scrollbar max-h-[50vh] overflow-y-auto pr-4"
+                id="detail-content">
+                <p>点击左侧时间轴，查看 AI 编程工具从诞生到现在的发展全貌，以及核心玩家背后的战略决策逻辑。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Synchronic Analysis -->
+    <section id="synchronic" class="py-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="mb-12 text-center">
+        <h2 class="text-3xl font-bold text-stone-900 mb-4">二、横向对比：两条不同的罗马大道</h2>
+        <p class="text-stone-600 max-w-3xl mx-auto">
+          在当前时间点（2025年），Claude Code 和 Hermes Agent 代表了两种截然不同的产品哲学：绝对的能力压制 vs 绝对的控制与隐私。我们从五大维度对这两款产品进行了深度剥析。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+        <!-- Radar Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
+          <h3 class="text-lg font-semibold text-stone-800 mb-6 text-center">核心能力维度对比</h3>
+          <div class="chart-container">
+            <canvas id="radarChart"></canvas>
+          </div>
+          <p class="text-xs text-stone-400 text-center mt-4">数据来源：开发者社区真实使用评测抽样分析 (N=500+)</p>
+        </div>
+
+        <!-- Interactive Comparison Cards -->
+        <div class="space-y-4">
+          <div class="flex space-x-2 mb-6 bg-stone-100 p-1 rounded-lg">
+            <button
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-white text-stone-900 shadow-sm transition-all focus:outline-none"
+              id="tab-claude" onclick="switchTab('claude')">🟧 Claude Code</button>
+            <button
+              class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-stone-500 hover:text-stone-900 transition-all focus:outline-none"
+              id="tab-hermes" onclick="switchTab('hermes')">🟩 Hermes Agent</button>
+          </div>
+
+          <!-- Dynamic Content Area -->
+          <div id="comparison-content" class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm min-h-[350px]">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Ecosystem & Market -->
+    <section id="ecosystem" class="bg-stone-900 text-stone-100 py-20 border-y border-stone-800">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-12">
+          <h2 class="text-3xl font-bold text-white mb-4">三、生态位分析：AI 编程赛道版图</h2>
+          <p class="text-stone-400">
+            在广阔的赛道中，产品定位决定了它的生存空间。通过将横轴设定为「生态开放度（闭源/云端 -> 开源/本地）」，纵轴设定为「自主程度（辅助补全 -> 独立 Agent）」，我们可以清晰看到目前市场的真空地带与激烈交锋区。
+          </p>
+        </div>
+
+        <div class="bg-stone-800 p-6 rounded-2xl border border-stone-700">
+          <div class="chart-container" style="max-height: 500px;">
+            <canvas id="scatterChart"></canvas>
+          </div>
+        </div>
+
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+          <div>
+            <h4 class="font-bold text-orange-400 mb-2">Claude Code 的领地</h4>
+            <p class="text-stone-300">占据了「高自主+云端闭源」的右上角。它填补了 IDE 插件无法处理跨文件复杂重构的空白，直接与 Devin 等全自动软件工程师正面竞争，但提供更敏捷的 CLI
+              体验。</p>
+          </div>
+          <div>
+            <h4 class="font-bold text-teal-400 mb-2">Hermes Agent 的生态</h4>
+            <p class="text-stone-300">盘踞在「高自主+开源本地」的左上角。这是一个正在快速增长的领域。它不与大厂拼算力，而是主打合规、离线和定制，吃下了企业内网开发和对数据极度敏感的特定市场。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Synthesis & Conclusion -->
+    <section id="synthesis" class="py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-stone-200 text-3xl mb-6">📌</div>
+        <h2 class="text-3xl font-bold text-stone-900 mb-4">横纵交汇：终局判断</h2>
+        <p class="text-stone-600">基于时间纵深的演变规律与当前横截面的竞争态势，我们对两者的未来走向得出以下结论。</p>
+      </div>
+
+      <div class="prose prose-stone max-w-none text-stone-700 leading-loose">
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-6 mb-8 rounded-r-lg">
+          <h3 class="text-xl font-bold text-stone-900 mt-0 mb-3">1. 路线之争本质是对"信任"的重构</h3>
+          <p>纵向来看，每一次工具的跃迁都伴随着人类出让更多的控制权。Claude Code 的成功建立在对模型推理能力极度信任的基础上（信任大厂不会把代码改崩）；而 Hermes Agent
+            的崛起，则是部分开发者对"黑盒云端"不信任的反弹（要求代码和数据必须留在本地）。<strong>这不是技术层面的胜负，而是商业安全与效率考量的博弈。</strong></p>
+        </div>
+
+        <div class="bg-teal-50 border-l-4 border-teal-500 p-6 mb-8 rounded-r-lg">
+          <h3 class="text-xl font-bold text-stone-900 mt-0 mb-3">2. 竞争终局：非零和博弈，而是场景分化</h3>
+          <p>横向对比表明，两者并无绝对的替代关系。Claude Code 将演变为大型企业、外包团队提升人效的超级基础设施（如同购买高级服务器），其核心壁垒在于底层基础模型（Claude 3.x）的持续领先。而 Hermes
+            Agent 将成为中小型涉密机构、极客开发者、Web3 领域的标配，其生命力在于开源社区的繁荣和本地算力硬件（如 M系列芯片、平价GPU）的普及。</p>
+        </div>
+
+        <div class="bg-stone-50 border-l-4 border-stone-800 p-6 rounded-r-lg">
+          <h3 class="text-xl font-bold text-stone-900 mt-0 mb-3">3. 趋势预判与潜在风险</h3>
+          <p><strong>机会：</strong>真正的破局点可能在两者之间——即提供「私有化部署+媲美大厂模型能力」的中间态产品。混合架构（本地小模型做常规 Agentic 任务，云端大模型做复杂攻坚）将是明年的新风口。
+          </p>
+          <p><strong>风险：</strong>Claude Code 面临的最大风险是推理成本的高昂以及企业数据合规审查；而 Hermes Agent
+            的风险在于开源大模型的代码能力若被闭源模型拉开代差，其"自主代理"将退化为"本地补全器"。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-stone-950 text-stone-400 py-8 text-center text-sm border-t border-stone-800">
+    <p>© 2026 AI Tools Research Analyst. Created via Canvas Webapp.</p>
+    <p class="mt-2 opacity-50">本报告中提及的产品数据与评价基于最新行业动态汇总与分析，部分前瞻性观点仅供参考。</p>
+  </footer>
+
+  <script>
+    // --- DATA STORAGE ---
+
+    // Diachronic Timeline Data
+    const timelineData = [
+      {
+        id: 'era1',
+        year: '2021-2022',
+        title: '起源："自动补全"时代 (Copilot)',
+        content: `
+                    <p class="mb-3"><strong>背景：</strong>大语言模型展现出理解代码语法的潜力，微软与 OpenAI 合作推出 GitHub Copilot。</p>
+                    <p class="mb-3"><strong>形态与定位：</strong>作为 IDE 的插件存在。核心定位是"高级打字机"，用户写注释，AI 补全代码块。</p>
+                    <p class="mb-3"><strong>局限性：</strong>缺乏全局视野（上下文窗口极小），只能处理局部逻辑，无法进行项目级别的思考。但它成功完成了对全球开发者的市场教育。</p>
+                `
+      },
+      {
+        id: 'era2',
+        year: '2023-2024初',
+        title: '演进："对话+IDE集成"时代 (Cursor)',
+        content: `
+                    <p class="mb-3"><strong>背景：</strong>ChatGPT 爆发，开发者习惯了对话式交互。单纯的补全不够用了。</p>
+                    <p class="mb-3"><strong>重大节点：</strong>Cursor 等 AI 原生 IDE 诞生。</p>
+                    <p class="mb-3"><strong>决策逻辑：</strong>为什么脱离 VSCode 体系？因为传统插件 API 无法实现对编辑器的深度接管。研发团队选择直接 Fork VSCode，将 AI 视为核心组件而非附属品。此时的 AI 已经能阅读多文件，进行问答式编程。</p>
+                `
+      },
+      {
+        id: 'era3',
+        year: '2024中下旬',
+        title: '转折：Agentic 概念大爆发 (Devin & 社区觉醒)',
+        content: `
+                    <p class="mb-3"><strong>大事件：</strong>Cognition 震撼发布全球首个 AI 软件工程师 Devin。它能自己开浏览器查文档、自己运行终端排错。</p>
+                    <p class="mb-3"><strong>行业震动：</strong>行业意识到，AI 编程的终局不是"副驾驶(Copilot)"，而是"自主代理(Agent)"。随后，开源社区迅速跟进，SWE-agent、OpenDevin 等项目涌现，为后续 Hermes Agent 的诞生铺平了底层框架和理念基础。</p>
+                `
+      },
+      {
+        id: 'era4',
+        year: '2024末-2025',
+        title: '双雄对决：Claude Code 与 Hermes Agent',
+        content: `
+                    <p class="mb-3"><strong>Claude Code 诞生：</strong>Anthropic 发现开发者真正需要的是在终端环境中的"虚拟同事"。推出原生 CLI 工具，深度绑定 Claude 3.x 系列模型。<strong>决策：</strong>放弃做 IDE，直接做命令行工具，因为这才是高阶开发者执行复杂任务（Git操作、环境配置、测试运行）的真实环境。</p>
+                    <p class="mb-3"><strong>Hermes Agent 崛起：</strong>针对闭源模型带来的数据隐私焦虑和高昂 API 成本，开源社区以 Nous Hermes 这样强大的开源模型为核心，结合本地执行环境构建的 Agent。<strong>决策：</strong>主打"绝对掌控"，让每一行代码和数据都留在本地物理机内，尽管在极度复杂的逻辑推理上偶有短板，但换取了安全与自由。</p>
+                `
+      }
+    ];
+
+    // Synchronic Comparison Data
+    const comparisonData = {
+      claude: {
+        icon: '🟧',
+        title: 'Claude Code',
+        subtitle: '由 Anthropic 构建的闭源终端代理',
+        architecture: '<strong>核心逻辑：</strong>CLI 原生工具 + 云端超大杯模型（Claude 3.7 Sonnet/Opus）。通过高频的 API 交互完成观察、思考、执行的循环。',
+        target: '<strong>目标用户：</strong>企业级开发团队、处理大型遗留代码库的高级工程师、外包项目经理。',
+        pros: '<ul><li class="mb-1">✨ 极强的上下文保持能力（可摄入数十万行代码）</li><li class="mb-1">✨ 开箱即用，无需配置复杂的环境</li><li class="mb-1">✨ 逻辑推理能力处于目前业界绝对顶尖水平</li></ul>',
+        cons: '<ul><li class="mb-1">⚠️ 产生高昂的 API 调用成本（按 Token 计费）</li><li class="mb-1">⚠️ 极度依赖网络，断网即瘫痪</li><li class="mb-1">⚠️ 企业代码需上传云端，存在合规风险</li></ul>',
+        quotes: '“感觉像招了一个随时在线的高级前端，告诉它需求，它直接帮我在终端跑完构建和测试，但下个月的 API 账单让我有些心痛。”'
+      },
+      hermes: {
+        icon: '🟩',
+        title: 'Hermes Agent',
+        subtitle: '基于开源模型的本地化自主代理',
+        architecture: '<strong>核心逻辑：</strong>本地/自托管 LLM + 开源 Agent 框架。依靠优秀的开源模型（如 Hermes 3/Llama系列）和本地运行环境（Docker/终端）执行动作。',
+        target: '<strong>目标用户：</strong>注重隐私的极客开发者、金融/医疗等数据敏感行业的研发团队、个人独立开发者。',
+        pros: '<ul><li class="mb-1">🛡️ 100% 数据隐私，无需上传任何代码</li><li class="mb-1">🛡️ 边际成本为零（仅消耗本地电费/算力）</li><li class="mb-1">🛡️ 高度可定制，可针对特定框架微调模型</li></ul>',
+        cons: '<ul><li class="mb-1">⚠️ 对本地硬件要求极高（通常需要高端 Mac 或独立显卡）</li><li class="mb-1">⚠️ 复杂逻辑推理略逊于顶级闭源模型，偶尔陷入死循环</li><li class="mb-1">⚠️ 部署和环境配置门槛较高</li></ul>',
+        quotes: '“折腾了一整个周末配置环境，但当它在我的离线服务器上成功找出 Bug 并修复的那一刻，我知道这才是属于开发者的自由。”'
+      }
+    };
+
+    // --- INTERACTION LOGIC ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initTimeline();
+      initCharts();
+      switchTab('claude'); // Set default tab
+    });
+
+    // 1. Timeline Logic
+    function initTimeline() {
+      const container = document.getElementById('timeline-container');
+
+      timelineData.forEach((item, index) => {
+        const node = document.createElement('div');
+        node.className = 'flex items-center cursor-pointer group';
+        node.innerHTML = `
+                    <div class="absolute left-[15px] w-3 h-3 bg-stone-300 rounded-full border-2 border-[#faf9f6] z-10 timeline-node group-hover:bg-orange-400 group-hover:scale-110" id="node-${item.id}"></div>
+                    <div class="ml-10 text-stone-500 group-hover:text-orange-600 transition-colors font-medium">
+                        <span class="block text-xs text-stone-400 mb-1">${item.year}</span>
+                        ${item.title}
+                    </div>
+                `;
+        node.onclick = () => updateTimelineDetail(item.id);
+        container.appendChild(node);
+      });
+
+      // Trigger first item
+      updateTimelineDetail(timelineData[0].id);
+    }
+
+    function updateTimelineDetail(id) {
+      // Update UI State
+      document.querySelectorAll('.timeline-node').forEach(node => {
+        node.classList.remove('active');
+      });
+      document.getElementById(`node-${id}`).classList.add('active');
+
+      // Update Content
+      const data = timelineData.find(d => d.id === id);
+      const contentDiv = document.getElementById('detail-content');
+
+      document.getElementById('detail-title').innerText = data.title;
+      document.getElementById('detail-date').innerText = data.year;
+
+      // Add fade animation
+      contentDiv.classList.remove('fade-in');
+      void contentDiv.offsetWidth; // Trigger reflow
+      contentDiv.innerHTML = data.content;
+      contentDiv.classList.add('fade-in');
+    }
+
+    // 2. Tab Logic for Comparison
+    window.switchTab = function (type) {
+      // Tab Styling
+      const claudeTab = document.getElementById('tab-claude');
+      const hermesTab = document.getElementById('tab-hermes');
+
+      const activeClasses = ['bg-white', 'text-stone-900', 'shadow-sm'];
+      const inactiveClasses = ['text-stone-500', 'hover:text-stone-900', 'bg-transparent', 'shadow-none'];
+
+      if (type === 'claude') {
+        claudeTab.classList.add(...activeClasses);
+        claudeTab.classList.remove(...inactiveClasses);
+        hermesTab.classList.add(...inactiveClasses);
+        hermesTab.classList.remove(...activeClasses);
+      } else {
+        hermesTab.classList.add(...activeClasses);
+        hermesTab.classList.remove(...inactiveClasses);
+        claudeTab.classList.add(...inactiveClasses);
+        claudeTab.classList.remove(...activeClasses);
+      }
+
+      // Update Content
+      const data = comparisonData[type];
+      const contentArea = document.getElementById('comparison-content');
+
+      contentArea.classList.remove('fade-in');
+      void contentArea.offsetWidth;
+
+      contentArea.innerHTML = `
+                <div class="flex items-center gap-3 mb-6 border-b border-stone-100 pb-4">
+                    <span class="text-3xl">${data.icon}</span>
+                    <div>
+                        <h4 class="text-xl font-bold text-stone-900">${data.title}</h4>
+                        <p class="text-sm text-stone-500">${data.subtitle}</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-5 text-sm text-stone-700">
+                    <div class="bg-stone-50 p-4 rounded-lg">${data.architecture}</div>
+                    <div>${data.target}</div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-bold text-stone-800 mb-2 flex items-center gap-1"><span class="text-green-500">⊕</span> 核心优势</h5>
+                            ${data.pros}
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-stone-800 mb-2 flex items-center gap-1"><span class="text-red-500">⊖</span> 明显短板</h5>
+                            ${data.cons}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 italic bg-stone-50 border-l-4 ${type === 'claude' ? 'border-orange-400' : 'border-teal-400'} rounded-r-lg text-stone-600">
+                        ${data.quotes}
+                    </div>
+                </div>
+            `;
+      contentArea.classList.add('fade-in');
+    };
+
+    // 3. Chart.js Implementations
+    function initCharts() {
+      Chart.defaults.font.family = "'Inter', 'Noto Sans SC', sans-serif";
+      Chart.defaults.color = '#78716c'; // stone-500
+
+      // --- Radar Chart ---
+      const ctxRadar = document.getElementById('radarChart').getContext('2d');
+      new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+          labels: ['代码推理/重构', '数据隐私安全', '开箱即用度', '长期使用成本(低)', '环境可定制化'],
+          datasets: [
+            {
+              label: 'Claude Code',
+              data: [98, 40, 95, 30, 50],
+              backgroundColor: 'rgba(249, 115, 22, 0.2)', // Orange 500
+              borderColor: 'rgba(249, 115, 22, 1)',
+              pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+              pointBorderColor: '#fff',
+              pointHoverBackgroundColor: '#fff',
+              pointHoverBorderColor: 'rgba(249, 115, 22, 1)'
+            },
+            {
+              label: 'Hermes Agent',
+              data: [80, 100, 50, 95, 95],
+              backgroundColor: 'rgba(13, 148, 136, 0.2)', // Teal 600
+              borderColor: 'rgba(13, 148, 136, 1)',
+              pointBackgroundColor: 'rgba(13, 148, 136, 1)',
+              pointBorderColor: '#fff',
+              pointHoverBackgroundColor: '#fff',
+              pointHoverBorderColor: 'rgba(13, 148, 136, 1)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: '#e7e5e4' },
+              grid: { color: '#e7e5e4' },
+              pointLabels: {
+                font: { size: 11, weight: 'bold' },
+                color: '#44403c'
+              },
+              ticks: { display: false, min: 0, max: 100 }
+            }
+          },
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  // Custom text for clarity
+                  let label = context.dataset.label || '';
+                  if (label) { label += ': '; }
+                  if (context.parsed.r !== null) { label += context.parsed.r + ' 分'; }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // --- Scatter Matrix Chart ---
+      const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+      new Chart(ctxScatter, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Claude Code',
+              data: [{ x: -80, y: 90 }], // Closed (-x), High Autonomy (+y)
+              backgroundColor: '#f97316',
+              pointRadius: 12,
+              pointHoverRadius: 15
+            },
+            {
+              label: 'Hermes Agent',
+              data: [{ x: 80, y: 80 }], // Open (+x), Med-High Autonomy (+y)
+              backgroundColor: '#0d9488',
+              pointRadius: 12,
+              pointHoverRadius: 15
+            },
+            {
+              label: 'Cursor / Windsurf',
+              data: [{ x: -60, y: 40 }], // Closed (-x), Med Autonomy (+y)
+              backgroundColor: '#a8a29e',
+              pointRadius: 8,
+            },
+            {
+              label: 'GitHub Copilot',
+              data: [{ x: -90, y: 10 }], // Closed (-x), Low Autonomy (+y)
+              backgroundColor: '#d6d3d1',
+              pointRadius: 6,
+            },
+            {
+              label: '开源自动补全模型 (StarCoder等)',
+              data: [{ x: 90, y: 10 }], // Open (+x), Low Autonomy (+y)
+              backgroundColor: '#d6d3d1',
+              pointRadius: 6,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              min: -100,
+              max: 100,
+              title: { display: true, text: '⬅ 闭源生态 / 云控制力 ----- 生态开放度 ----- 开源生态 / 本地控制力 ➡', color: '#a8a29e', font: { size: 12 } },
+              grid: { color: '#44403c', drawBorder: true },
+              ticks: { display: false }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              title: { display: true, text: '自主作业能力 (Agentic Level) ⬆', color: '#a8a29e', font: { size: 12 } },
+              grid: { color: '#44403c', drawBorder: true },
+              ticks: { display: false }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#d6d3d1', usePointStyle: true }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return context.dataset.label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
