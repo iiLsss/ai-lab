@@ -1,5 +1,8 @@
 'use client'
 import { useState } from 'react'
+import { Streamdown } from 'streamdown'
+import { code } from '@streamdown/code'
+import { cjk } from '@streamdown/cjk'
 
 export default function SupabaseRAGDashboard() {
 	const [activeTab, setActiveTab] = useState<'search' | 'ingest'>('search')
@@ -247,8 +250,7 @@ export default function SupabaseRAGDashboard() {
 									<select
 										value={filterSource}
 										onChange={e => setFilterSource(e.target.value)}
-										className='rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-sm text-zinc-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors'
-									>
+										className='rounded-xl border border-zinc-200 bg-white px-4 py-3.5 text-sm text-zinc-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors'>
 										<option value='all'>📚 所有来源</option>
 										<option value='docs/streamdown-analysis.md'>📄 streamdown-analysis.md</option>
 										<option value='docs/vercel-ai-sdk-guide.md'>📄 vercel-ai-sdk-guide.md</option>
@@ -302,7 +304,11 @@ export default function SupabaseRAGDashboard() {
 													<div className='flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100 text-zinc-500 font-semibold text-xs border border-zinc-200'>{index + 1}</div>
 												</div>
 												<div className='flex-1 min-w-0'>
-													<p className='text-base text-zinc-800 leading-relaxed mb-4 whitespace-pre-wrap'>{item.text}</p>
+													<div className='text-base text-zinc-800 leading-relaxed mb-4 prose prose-zinc max-w-none'>
+														<Streamdown controls={false} plugins={{ code, cjk }} shikiTheme={['catppuccin-latte', 'catppuccin-mocha']}>
+															{item.text}
+														</Streamdown>
+													</div>
 													<div className='flex items-center flex-wrap gap-2 mt-4'>
 														<span className='inline-flex items-center px-2 py-1 rounded-md text-xs font-mono bg-zinc-100 text-zinc-600 border border-zinc-200'>
 															<svg className='w-3.5 h-3.5 mr-1.5 text-blue-500' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth='2'>

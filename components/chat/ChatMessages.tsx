@@ -6,7 +6,6 @@ import { mermaid } from '@streamdown/mermaid'
 import { createMathPlugin } from '@streamdown/math'
 import { cjk } from '@streamdown/cjk'
 import 'katex/dist/katex.min.css'
-import 'streamdown/styles.css'
 import { RefObject } from 'react'
 import { cn } from '@/lib/utils'
 
